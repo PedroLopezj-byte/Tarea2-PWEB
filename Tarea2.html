@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora WEB – Tarea 2</title>
+<style>
+  :root {
+    --fondo: #e6ecf0;
+    --cuerpo: #14202b;
+    --lcd: #cddbc8;
+    --lcd-texto: #1b2a1f;
+    --tecla: #24384a;
+    --tecla-texto: #f2f6f8;
+    --operador: #1f6f78;
+    --igual: #e4572e;
+    --borrar: #4a5d6e;
+    --error: #a3271a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding: 24px;
+    background: var(--fondo);
+    font-family: system-ui, "Segoe UI", Arial, sans-serif;
+    color: var(--cuerpo);
+  }
+  .calculadora {
+    width: 340px;
+    max-width: 100%;
+    background: var(--cuerpo);
+    border-radius: 22px;
+    padding: 20px;
+    box-shadow: 0 18px 40px rgba(20, 32, 43, .28);
+  }
+  .titulo {
+    margin: 0 0 12px;
+    color: var(--tecla-texto);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: .02em;
+  }
+  .pantalla {
+    background: var(--lcd);
+    color: var(--lcd-texto);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-family: ui-monospace, Consolas, "Courier New", monospace;
+    text-align: right;
+    min-height: 96px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,.18);
+  }
+  .expresion {
+    font-size: 15px;
+    min-height: 22px;
+    opacity: .75;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .resultado {
+    font-size: 34px;
+    font-weight: 500;
+    overflow-x: auto;
+    white-space: nowrap;
+    min-height: 44px;
+  }
+  .resultado.error { color: var(--error); font-size: 16px; white-space: normal; }
+  .resultado.cargando { opacity: .5; }
+  .teclas {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  button {
+    font: inherit;
+    font-size: 20px;
+    font-weight: 500;
+    padding: 14px 0;
+    border: 0;
+    border-radius: 12px;
+    background: var(--tecla);
+    color: var(--tecla-texto);
+    cursor: pointer;
+    transition: transform .08s ease, filter .15s ease;
+  }
+  button:hover { filter: brightness(1.15); }
+  button:active { transform: scale(.95); }
+  button:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+  button:disabled { opacity: .5; cursor: wait; }
+  .op { background: var(--operador); }
+  .borrar { background: var(--borrar); }
+  .igual { background: var(--igual); grid-column: 1 / -1; }
+  .estado {
+    margin: 12px 2px 0;
+    color: #9fb3c2;
+    font-size: 12px;
+  }
+  .historial {
+    width: 260px;
+    max-width: 100%;
+    align-self: stretch;
+    max-height: 520px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(20, 32, 43, .1);
+  }
+  .historial h2 { margin: 0 0 10px; font-size: 16px; }
+  .historial ul { list-style: none; margin: 0; padding: 0; }
+  .historial li {
+    padding: 8px 6px;
+    border-bottom: 1px solid #e3e9ee;
+    font-family: ui-monospace, Consolas, "Courier New", monospace;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .historial li:hover { background: #eef3f6; }
+  .historial .vacio { color: #6b7d8b; cursor: default; font-family: inherit; }
+  .historial .vacio:hover { background: none; }
+  @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+</style>
+</head>
+<body>
+
+<main class="calculadora" aria-label="Calculadora">
+  <h1 class="titulo">Calculadora WEB</h1>
+
+  <div class="pantalla" aria-live="polite">
+    <div class="expresion" id="expresion"></div>
+    <div class="resultado" id="resultado">0</div>
+  </div>
+
+  <div class="teclas" id="teclas">
+    <button class="borrar" data-accion="limpiar">C</button>
+    <button class="borrar" data-accion="atras" aria-label="Borrar último">⌫</button>
+    <button class="op" data-valor="(">(</button>
+    <button class="op" data-valor=")">)</button>
+
+    <button data-valor="7">7</button>
+    <button data-valor="8">8</button>
+    <button data-valor="9">9</button>
+    <button class="op" data-valor="/">÷</button>
+
+    <button data-valor="4">4</button>
+    <button data-valor="5">5</button>
+    <button data-valor="6">6</button>
+    <button class="op" data-valor="*">×</button>
+
+    <button data-valor="1">1</button>
+    <button data-valor="2">2</button>
+    <button data-valor="3">3</button>
+    <button class="op" data-valor="-">−</button>
+
+    <button data-valor="0">0</button>
+    <button data-valor=".">.</button>
+    <button class="op" data-valor="^">^</button>
+    <button class="op" data-valor="+">+</button>
+
+    <button class="igual" data-accion="calcular">Calcular</button>
+  </div>
+
+  <p class="estado" id="estado">Servicio: api.mathjs.org</p>
+</main>
+
+<aside class="historial">
+  <h2>Historial</h2>
+  <ul id="lista">
+    <li class="vacio">Aún no hay operaciones.</li>
+  </ul>
+</aside>
+
+<script>
+  // ---------- Referencias al DOM ----------
+  const elExpresion = document.getElementById("expresion");
+  const elResultado = document.getElementById("resultado");
+  const elEstado    = document.getElementById("estado");
+  const elLista     = document.getElementById("lista");
+  const teclas      = document.getElementById("teclas");
+
+  // ---------- Estado ----------
+  const API_URL = "https://api.mathjs.org/v4/";
+  let expresion = "";     // lo que el usuario va escribiendo (usa * / - + ^)
+  let calculando = false; // evita enviar dos peticiones a la vez
+
+  // Convierte los símbolos de la interfaz para mostrarlos bonitos
+  function paraMostrar(texto) {
+    return texto.replace(/\*/g, "×").replace(/\//g, "÷").replace(/-/g, "−");
+  }
+
+  function pintar() {
+    elExpresion.textContent = paraMostrar(expresion);
+  }
+
+  function mostrarResultado(texto, tipo = "") {
+    elResultado.textContent = texto;
+    elResultado.className = "resultado " + tipo;
+  }
+
+  // ---------- Función fetch: consume el servicio web ----------
+  async function calcular() {
+    if (calculando || expresion.trim() === "") return;
+
+    calculando = true;
+    elEstado.textContent = "Consultando servicio web…";
+    mostrarResultado("…", "cargando");
+    teclas.querySelectorAll("button").forEach(b => b.disabled = true);
+
+    // encodeURIComponent codifica caracteres como + ^ ( ) para la URL
+    const url = `${API_URL}?expr=${encodeURIComponent(expresion)}&precision=14`;
+
+    try {
+      const respuesta = await fetch(url);          // 1. petición GET
+      const texto = await respuesta.text();        // 2. la API responde texto plano
+
+      if (!respuesta.ok) {                         // 3. error de la API (400, etc.)
+        throw new Error(texto || "Expresión no válida");
+      }
+      if (texto === "Infinity" || texto === "-Infinity" || texto === "NaN") {
+        throw new Error("Operación no válida (división entre 0).");
+      }
+
+      mostrarResultado(texto);                     // 4. mostrar resultado
+      agregarHistorial(expresion, texto);
+      expresion = texto;                           // permite seguir operando
+      elEstado.textContent = "Listo ✔ (respuesta de api.mathjs.org)";
+    } catch (error) {
+      // Si no hay internet, fetch lanza TypeError("Failed to fetch")
+      const sinRed = error instanceof TypeError;
+      mostrarResultado(
+        sinRed ? "No se pudo conectar. Revisa tu internet." : error.message,
+        "error"
+      );
+      elEstado.textContent = "Error al consumir el servicio";
+    } finally {
+      calculando = false;
+      teclas.querySelectorAll("button").forEach(b => b.disabled = false);
+      pintar();
+    }
+  }
+
+  // ---------- Historial ----------
+  function agregarHistorial(op, res) {
+    const vacio = elLista.querySelector(".vacio");
+    if (vacio) vacio.remove();
+
+    const li = document.createElement("li");
+    li.textContent = `${paraMostrar(op)} = ${res}`;
+    li.title = "Clic para reutilizar el resultado";
+    li.addEventListener("click", () => {
+      expresion += res;
+      pintar();
+    });
+    elLista.prepend(li);
+  }
+
+  // ---------- Eventos de los botones ----------
+  teclas.addEventListener("click", (e) => {
+    const boton = e.target.closest("button");
+    if (!boton || calculando) return;
+
+    const { valor, accion } = boton.dataset;
+
+    if (valor) {
+      expresion += valor;
+    } else if (accion === "limpiar") {
+      expresion = "";
+      mostrarResultado("0");
+      elEstado.textContent = "Servicio: api.mathjs.org";
+    } else if (accion === "atras") {
+      expresion = expresion.slice(0, -1);
+    } else if (accion === "calcular") {
+      calcular();
+      return;
+    }
+    pintar();
+  });
+
+  // ---------- Soporte de teclado ----------
+  document.addEventListener("keydown", (e) => {
+    if (calculando) return;
+    if (/^[0-9+\-*/().^]$/.test(e.key)) {
+      expresion += e.key;
+    } else if (e.key === "Enter" || e.key === "=") {
+      e.preventDefault();
+      calcular();
+      return;
+    } else if (e.key === "Backspace") {
+      expresion = expresion.slice(0, -1);
+    } else if (e.key === "Escape") {
+      expresion = "";
+      mostrarResultado("0");
+    } else {
+      return;
+    }
+    pintar();
+  });
+</script>
+</body>
+</html>
